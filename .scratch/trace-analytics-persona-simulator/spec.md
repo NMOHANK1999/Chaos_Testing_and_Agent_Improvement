@@ -17,12 +17,12 @@ Both problems compound each other: without synthetic traffic, there's not enough
 
 ## Solution
 
-One canonical way to represent a trace, normalized from any source, feeding two systems built on top of it:
+One canonical way to represent a trace, normalized from any source, connecting two systems in a specific operating order — this is one pipeline with a data-generation stage and an analysis stage, not two independent systems that happen to share a schema:
 
-1. **Trace Analytics Pipeline** — ingests traces from any agent/harness (production or synthetic), normalizes them, and produces a report covering usage modes, cost analytics, error modes, and open-ended insights.
-2. **Persona-Based Usage Simulator** — generates a wide variety of personas grounded in the target agent's actual use cases (not generic archetypes), drives simulated conversations against the agent, and produces traces through the same normalization path as real traffic — for chaos/stress-testing personality diversity and scale ahead of or alongside real usage.
+1. **Persona-Based Usage Simulator (runs first)** — generates a wide variety of personas grounded in the target agent's actual use cases (not generic archetypes), drives simulated conversations against the agent, and produces traces through the same normalization path real traffic would use. Its output is this system's primary trace corpus, not a side channel: it exists specifically to give the analytics pipeline something to run on before real traffic does, or in addition to it.
+2. **Trace Analytics Pipeline (runs second)** — ingests traces from any source (simulator output first; real production traffic as an additional source once an integration target is chosen), normalizes them, and produces a report covering usage modes, cost analytics, error modes, and open-ended insights.
 
-The two systems never assume a fixed trace format. Every trace source (a given harness, an API integration, or the simulator itself) is normalized through its own adapter into a small canonical event stream; the analytics pipeline only ever reads that canonical stream, never a source's native format directly. This is what lets the same pipeline analyze both live production traces and simulator-generated ones, and lets a new agent/harness be onboarded by writing one adapter rather than touching the analyzer.
+Neither system assumes a fixed trace format. Every trace source (the simulator, a given harness, an API integration) is normalized through its own adapter into a small canonical event stream; the analytics pipeline only ever reads that canonical stream, never a source's native format directly. This is what lets the pipeline run end-to-end on simulator-generated traces from day one, then blend in real production traces later with no change to the analyzer — only a new adapter.
 
 ## User Stories
 

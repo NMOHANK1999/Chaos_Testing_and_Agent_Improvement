@@ -4,9 +4,9 @@ This is the 10,000-foot view. For the product-facing problem/solution/user stori
 
 ## 1. Goals
 
-- Turn a corpus of agent conversation traces — from any source, present or future — into usage-mode, cost, and error-mode analytics, plus synthesized product insights.
-- Generate a wide, use-case-grounded variety of simulated personas and drive them against a target agent to produce trace volume for chaos/stress/scale testing ahead of or alongside real traffic.
-- Do both through one shared, source-agnostic trace representation, so the same analytics pipeline serves real and synthetic data identically.
+- **Generate usage data first.** A wide, use-case-grounded variety of simulated personas drives a target agent, producing trace volume before real traffic exists (or alongside it once it does). This is the system's primary data source, not an optional chaos-testing add-on bolted onto an analytics tool built for production traffic.
+- **Analyze that corpus second.** Turn it into usage-mode, cost, and error-mode analytics, plus synthesized product insights.
+- Do both through one shared, source-agnostic trace representation, so the same analytics pipeline runs on simulator-generated traces from day one and blends in real production traces later with no change beyond a new adapter.
 - Default to adopting open-source implementations over custom code at every component, reserving custom work for the interface/glue layer that connects them.
 
 ## 2. Non-Goals (Scope Boundaries)
@@ -19,27 +19,38 @@ This is the 10,000-foot view. For the product-facing problem/solution/user stori
 
 ## 3. High-Level Architecture
 
+**Read this diagram top to bottom as the v0 operating sequence, not as a set of symmetric options.** The Persona Simulator is step one: it generates the trace corpus. The Trace Analytics pipeline is step two: it analyzes what the simulator produced. Real production traffic is a solid part of the design (the whole point of the adapter seam is that it isn't special-cased) but it's an *additional* source added once an integration target is chosen (§14) — it is not what v0 is built around, and nothing here should be read as implying the analytics pipeline waits for it.
+
 ```mermaid
 flowchart TB
-    subgraph Sources["Trace Sources"]
-        H1["Harness A\n(real traffic)"]
-        H2["Harness B\n(real traffic)"]
-        SIMOUT["Persona Simulator output"]
+    subgraph Simulator["Persona Simulator — specs 08-10 (PRIMARY v0 data source, runs first)"]
+        PG["Persona Generator\nspec 08"]
+        LOOP["Simulator Loop\nspec 10"]
+        AA["Target Agent Adapter\nspec 09"]
+    end
+
+    PG --> LOOP
+    LOOP <--> AA
+    AA <--> TARGET["Target Agent under test"]
+
+    subgraph RealSources["Real production traffic — added later, once an integration target is chosen (§14)"]
+        H1["Harness A"]
+        H2["Harness B"]
     end
 
     subgraph Adapters["TraceAdapter layer — spec 02"]
+        A3["Adapter: Simulator"]
         A1["Adapter: Harness A"]
         A2["Adapter: Harness B"]
-        A3["Adapter: Simulator"]
     end
 
-    H1 --> A1
-    H2 --> A2
-    SIMOUT --> A3
+    LOOP --> A3
+    H1 -.->|"added later"| A1
+    H2 -.->|"added later"| A2
 
-    A1 --> EV[("Canonical Event Stream\nspec 01")]
-    A2 --> EV
-    A3 --> EV
+    A3 --> EV[("Canonical Event Stream\nspec 01")]
+    A1 -.-> EV
+    A2 -.-> EV
 
     EV --> ST[("Trace Storage & Query\nspec 03")]
 
@@ -51,23 +62,12 @@ flowchart TB
     CC --> IS
     EM --> IS
 
-    IS --> RPT[["Analysis Report"]]
-
-    subgraph Simulator["Persona Simulator — specs 08-10"]
-        PG["Persona Generator\nspec 08"]
-        LOOP["Simulator Loop\nspec 10"]
-        AA["Target Agent Adapter\nspec 09"]
-    end
-
-    PG --> LOOP
-    LOOP <--> AA
-    AA <--> TARGET["Target Agent under test"]
-    LOOP --> SIMOUT
+    IS --> RPT[["Analysis Report — step two"]]
 
     RPT -.->|"optional v1 feedback:\nusage modes ground new personas"| PG
 ```
 
-Two loops, one seam between them: the analytics pipeline (top) is entirely source-agnostic — it never knows or cares whether an `Event` originated from real traffic or the simulator. The optional dotted feedback edge (report → persona generator) is explicitly v1, not required for v0 to function (see spec 08).
+The primary v0 loop is drawn solid: Persona Simulator → adapter → canonical events → storage → analytics → report. Real traffic (dotted) is a later addition, not the baseline this system was designed around — the analytics pipeline is source-agnostic by construction, so adding it is a new adapter, not a redesign. The dotted feedback edge (report → persona generator) is a separate, optional v1 refinement — a *second*, smaller loop on top of the primary one — not required for the primary loop to function (see spec 08).
 
 ## 4. Data Model
 
@@ -97,7 +97,7 @@ Each component exposes exactly one call; nothing downstream reaches past it into
 
 No real traffic numbers exist yet — this repo is greenfield (see engineering-specs). The figures below are placeholders to be replaced once an integration target (spec 02) is chosen; they exist to make the *shape* of the estimate explicit, not to assert a real number:
 
-- **Assume** 10K real traces/day once integrated, plus simulator runs at 10-100x that for stress testing (100K-1M synthetic traces/day in a chaos-test run).
+- **Assume** the simulator is the primary volume source at launch, not a multiplier on top of real traffic: a chaos-test run generating 100K-1M synthetic traces/day, entirely independent of whether or when a real-traffic integration (§14) happens. Real traffic, once integrated, adds to this baseline rather than being the baseline itself.
 - At ~20 events/trace average, 1M traces/day ≈ 20M events/day ≈ ~230 events/sec sustained, well within DuckDB's single-node throughput (spec 03's candidate).
 - Storage growth: at ~2KB/event (message text + attributes), 20M events/day ≈ ~40GB/day raw before compression — this is the number that should drive the spec-03 experiment's largest benchmark tier (the spec already tests up to 1M events; revisit that ceiling once this estimate is replaced with a real one).
 - Simulator concurrency: chaos-testing "at scale" implies N simulated conversations in parallel, each holding its own target-agent connection — this is the concurrency axis spec 10's experiment measures per candidate framework, not an afterthought.
@@ -155,19 +155,19 @@ A system whose product is observability needs its own, separate from what it pro
 
 ## 13. Rollout Plan
 
-Follows the dependency graph in [`engineering-specs/README.md`](engineering-specs/README.md) directly — it *is* the rollout plan:
+This is *not* just the dependency graph in [`engineering-specs/README.md`](engineering-specs/README.md) read top to bottom — the blocking edges there only say what's technically possible to build in parallel, not what order produces value fastest. The value-producing order is simulator-before-analytics, since analytics has nothing production-shaped to analyze until the simulator generates it:
 
 1. **Foundation** (spec 01): canonical schema. Nothing else can start meaningfully before this.
-2. **Prove the seam** (spec 02): two adapters, one real source + the simulator's own — the point where "not a fixed format" gets tested for real, not just asserted.
+2. **Prove the seam with two source-agnostic adapters** (spec 02): the simulator's own adapter, plus one reference adapter built by instrumenting a stand-in app with OpenLLMetry/OpenInference. This is *not* the eventual production-harness adapter — that integration-target decision (§14) is decoupled from this step and doesn't block it.
 3. **Make data queryable** (spec 03): storage/query layer.
-4. **Analytics components in parallel** (specs 04, 05, 06): each only depends on 01+03, so these can build concurrently once the foundation lands.
-5. **Synthesize** (spec 07): depends on all three analytics components.
-6. **Simulator components in parallel** (specs 08, 09): each only depends on 01, buildable alongside the analytics track.
-7. **Close the loop** (spec 10): depends on 02, 08, 09 — the last piece, since it's where persona generation, the target-agent adapter, and the simulator's own trace adapter all meet.
+4. **Stand up the simulator track next — deliberately ahead of analytics** (specs 08, 09, 10): Persona Generator, Target Agent Adapter, Simulator Loop. This is this project's primary data source; the analytics components below have nothing real to run against until this exists.
+5. **Analytics components against the now-available simulator output** (specs 04, 05, 06): each is technically only blocked by 01+03, but is validated for real against the trace corpus step 4 produces, not just the academic benchmark datasets each spec's Test Datasets section lists as a correctness check.
+6. **Synthesize** (spec 07): depends on all three analytics components.
+7. **Add real production traffic** (extends spec 02): once an integration-target decision is made (§14), write its adapter. The analytics pipeline requires no changes to start including it — that's the seam doing its job.
 
 ## 14. Open Questions & Risks
 
-- Which real harness/agent gets the first `TraceAdapter` (spec 02) is still undecided — it gates the entire real-data half of the rollout and should be resolved before ticket-cutting starts.
+- Which real harness/agent eventually gets a production `TraceAdapter` (spec 02, rollout step 7) is still undecided — but per the reordered rollout above, this no longer gates meaningful progress or ticket-cutting: the simulator supplies the primary trace corpus independent of this decision, so it can be resolved on its own timeline.
 - Model2Vec's semantic quality on this project's specific request text (as opposed to the general benchmarks cited in spec 04) is unverified until the experiment actually runs — the speed win is well-evidenced generically, the quality trade-off on *this* data is not yet.
 - τ-bench's task/API-tool domain assumptions may not transfer cleanly to an arbitrary target agent outside retail/airline-style domains — spec 10's experiment is designed to surface this rather than assume it away.
 - No production-scale numbers exist yet (§6 is explicitly placeholder) — every capacity/latency conclusion here should be revisited once real traffic (or a serious chaos-test run) produces actual numbers.

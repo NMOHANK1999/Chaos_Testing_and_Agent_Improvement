@@ -5,7 +5,7 @@
 
 ## What it builds
 
-At least two concrete `TraceAdapter` implementations, proving the seam from spec 01 actually holds across genuinely different native formats: one for a real instrumentation source, one for the simulator's own transcript format (co-developed with spec 10).
+At least two concrete `TraceAdapter` implementations, proving the seam from spec 01 actually holds across genuinely different native formats: one for the simulator's own transcript format (co-developed with spec 10, and the one that matters most for v0 since the simulator is this project's primary trace source), one for a generic reference instrumentation source. The second adapter is deliberately *not* the eventual production-harness integration — that decision (see the parent spec's Further Notes and `SYSTEM_DESIGN.md` §14) is undecided and explicitly decoupled from this spec, so proving the seam doesn't wait on it.
 
 ## Problem
 
@@ -21,7 +21,7 @@ Rather than hand-writing instrumentation for a target agent, two OSS auto-instru
 
 ## Build vs Buy Decision
 
-**Buy the instrumentation, build only the adapter's mapping logic.** Point one of OpenLLMetry or OpenInference at a real target agent to get spans "for free," and write a `TraceAdapter` that maps that export format into canonical `Event`s. This avoids hand-instrumenting a target agent while still producing a genuine, non-simulator trace source for the seam.
+**Buy the instrumentation, build only the adapter's mapping logic.** Point one of OpenLLMetry or OpenInference at a stand-in app (any small LLM-calling script suffices — this does not need to be the eventual production target agent) to get spans "for free," and write a `TraceAdapter` that maps that export format into canonical `Event`s. This avoids hand-instrumenting a target agent while still producing a genuine, non-simulator trace source for the seam, without waiting on the still-undecided production integration target.
 
 ## Experiment Design
 

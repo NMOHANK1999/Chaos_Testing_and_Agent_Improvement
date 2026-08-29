@@ -22,3 +22,5 @@ Every spec defaults to adopting an existing open-source implementation over writ
 Specs 01–07 form the Trace Analytics pipeline; 08–10 form the Persona Simulator. 02 (a simulator-native `TraceAdapter`) is shared: it's written alongside 10 and consumed by both halves.
 
 The frontier (can start immediately, no blockers): **01**.
+
+**This table shows blocking edges, not build priority — don't read it as "01-07 then 08-10."** The actual operating pattern is sequential in the other direction: the Persona Simulator (08-10) generates the trace corpus; Trace Analytics (04-07) analyzes it. Analytics has nothing production-shaped to run against until the simulator produces it, so 08-10 should be built ahead of 04-06 even though the table shows them as parallel-eligible. See [`../SYSTEM_DESIGN.md`](../SYSTEM_DESIGN.md) §13 for the actual recommended rollout order.

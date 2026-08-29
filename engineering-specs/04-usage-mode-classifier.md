@@ -36,7 +36,7 @@ The clustering *architecture* (embed → reduce dimensionality → density-clust
   (b) BERTopic + standard sentence-transformer embeddings + cuML GPU acceleration + LLM cluster labeling — the quality-first path, conditional on GPU availability.
   (c) BERTopic + standard sentence-transformer embeddings, CPU only, no GPU — the original baseline, kept specifically to quantify what (a) and (b) are improving on.
   (d) Pure LLM zero-shot classification (no embedding/clustering step) — kept as the non-embedding alternative.
-- **Dataset:** the labeled intent datasets below (for a correctness read against a known answer key) plus a sample of 500–1,000 traces from whatever corpus exists at the time (real once available, simulator-generated otherwise) for the production-shaped read.
+- **Dataset:** the labeled intent datasets below (for a correctness read against a known answer key) plus a sample of 500–1,000 traces from the simulator's own output (spec 10) — the primary corpus this project is designed around, and the one that exists before any real traffic does — for the production-shaped read. Real traces, once a production integration exists, supplement this rather than replace it.
 - **Metrics, in priority order:**
   1. *Latency per 1,000 traces processed* (wall clock, CPU-only environment as the baseline case — this project should not assume every deployment has a GPU).
   2. *Topic coherence* (c_v or NPMI) and *human-rated relevance* (2 raters, 1–5 Likert, inter-rater agreement reported) — computed only for candidates that clear the latency gate.
