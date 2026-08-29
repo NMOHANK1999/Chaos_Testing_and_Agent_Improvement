@@ -36,6 +36,12 @@ A single "generate a persona" prompt run repeatedly risks mode collapse — an L
 - **Decision rule:** the winning candidate needs both acceptable diversity and high fidelity — a candidate that wins one axis while failing the other is disqualified. Expect (a) to be diverse-limited (mode collapse), (c) to score high diversity but low fidelity (proving the negative-control point), and (b) to win both; if the experiment doesn't confirm that, don't ship (b) anyway on the strength of the hypothesis alone.
 - Persona spec output is schema-validated using the structured-output library chosen in spec 07 (Instructor or PydanticAI) — reused here rather than re-decided, since it's the same underlying problem (reliable structured LLM output).
 
+## Test Datasets & Reference Implementations
+
+- **PersonaHub** (Tencent AI Lab, Hugging Face-hosted, ~1B personas) — already the chosen diversity seed (candidate (b)/(c) above); directly usable as the sampling pool for the experiment itself, no separate acquisition step needed.
+- **LMSYS-Chat-1M** / **WildChat** — real user conversations double as an indirect realism check: once spec 04's classifier can categorize both real and simulator-generated traffic, compare the request-type distribution of generated personas' simulated conversations against the real distribution in these corpora as a signal beyond the LLM-judge fidelity score.
+- The **SCOPE**, **KoPersona**, **PolyPersona**, and **DeepPersona** papers (2025-2026) each publish grounded-persona-construction code — worth reviewing when designing the grounding-prompt step, even though PersonaHub remains the diversity-seed dataset of choice for v0.
+
 ## Interface & Implementation Decisions
 
 - Interface: `generate(target_agent_description, count) -> list[PersonaSpec] { role, technical_level, goals, communication_style, seed_source }`.

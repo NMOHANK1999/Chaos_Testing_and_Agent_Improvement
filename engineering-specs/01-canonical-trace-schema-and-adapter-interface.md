@@ -27,6 +27,11 @@ This is an architecture decision, not a comparison between competing finished co
 
 Not applicable. This spec defines the interface everything else measures itself against; it has no peer candidates to benchmark. (Specs 02–10 each run their own experiment where genuine alternatives exist.)
 
+## Test Datasets & Reference Implementations
+
+- **OpenInference** and **Arize Phoenix** ship real captured example traces (in their own docs/example notebooks) in OTel/OpenInference span format — usable as schema-conformance fixtures for validating that the canonical `Event` envelope can represent a real trace shape, without needing a live agent running.
+- **LMSYS-Chat-1M** (`lmsys/lmsys-chat-1m` on Hugging Face, 1M real multi-turn LLM conversations) and **WildChat** (1M+ real ChatGPT conversations, Hugging Face) — neither is trace-instrumented, but their raw multi-turn JSON is a ready source of realistic conversation shapes (long turn counts, multilingual content, occasional tool-like structure) to stress-test the schema against edge cases a hand-written fixture set would likely miss.
+
 ## Interface & Implementation Decisions
 
 - **`Event`** (the unit of the canonical stream): required envelope —

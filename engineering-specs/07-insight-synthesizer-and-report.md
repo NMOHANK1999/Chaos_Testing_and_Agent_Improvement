@@ -32,6 +32,10 @@ Structured-output libraries solve exactly "get an LLM to reliably produce schema
 - **Metrics:** schema-validation pass rate (first attempt and eventual, after library-internal retries), number of retries needed, added latency versus a raw ungoverned call.
 - **Decision rule:** pick whichever clears 100% eventual validity with fewer retries/less latency overhead; given Instructor's stated maturity and "safest default" positioning as of 2026, it's the leading hypothesis, but PydanticAI is a legitimate second candidate if this project later needs tool-calling in the same call (it currently doesn't).
 
+## Test Datasets & Reference Implementations
+
+- **DeepEval** and **RAGAS** both ship open example datasets/notebooks demonstrating structured eval-result schemas (nested objects, lists of findings) — useful both as a design reference for shaping the `AnalysisReport` schema and as ready fixture inputs for the Instructor-vs-PydanticAI schema-adherence experiment, since they already exercise the kind of nested structure a report needs.
+
 ## Interface & Implementation Decisions
 
 - Interface: `synthesize(usage_modes, cost_breakdown, error_modes) -> AnalysisReport`.

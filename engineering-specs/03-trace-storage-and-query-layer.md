@@ -30,6 +30,11 @@ Underneath any of that, general-purpose embedded/analytical engines — **DuckDB
 - **Metrics:** ingest throughput (events/sec), query p50/p95 latency at each volume, infra/ops overhead (does it need a running server, migrations, credentials), ease of ad hoc SQL for a data scientist not familiar with this codebase.
 - **Decision rule:** pick the lowest-overhead candidate that clears a latency bar (e.g., all representative queries under 1s at the 1M-event volume). Expect DuckDB to win on overhead given it needs no server process and reads/writes Parquet directly, but the experiment should actually run rather than assume this.
 
+## Test Datasets & Reference Implementations
+
+- **LMSYS-Chat-1M** and **WildChat** (1M+ real conversations each, Hugging Face) provide a ready, realistic-scale dataset for this spec's volume benchmark — load them (normalized through specs 01/02) instead of purely synthetic fixtures, so throughput/latency numbers reflect real conversation-length distributions rather than an idealized generator's assumptions.
+- **DuckDB Labs**' own published TPC-H/TPC-DS-based benchmarking scripts are a reference implementation for how to structure the load-and-query benchmark script itself, independent of which engine wins.
+
 ## Interface & Implementation Decisions
 
 - Storage sits behind its own small interface — `write(events: list[Event])` / `query(spec) -> rows` — so the chosen engine (whatever the experiment picks) can be swapped without touching spec 04–07's code, which only ever calls this interface.

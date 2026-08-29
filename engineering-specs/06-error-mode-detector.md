@@ -31,11 +31,17 @@ Most failures aren't reported; they're just abandoned or worked around by the us
 
 **Question:** which combination of structural-failure detector and implicit-criticism detector yields the best precision/recall against real failure/criticism instances?
 
-- **Ground truth (unavoidable groundwork, not skippable via "buy"):** hand-label a fixture set of 100–200 traces (drawn from real traces once available and/or simulator-generated traces from spec 10) for: contains-a-failure (yes/no + severity) and contains-implicit-criticism (yes/no). This gold set is itself a deliverable of this spec.
+- **Ground truth:** for the structural-failure category, adopt the **TRAIL** dataset (Patronus AI; see Test Datasets below) instead of hand-labeling from scratch — 148 real agent traces with 841 annotated errors across a reasoning/execution/planning taxonomy is a substantially larger and more rigorously labeled gold set than this project could produce from scratch as a side effect of one spec. Implicit-criticism has no equivalent open gold set (see below), so a smaller hand-labeled sample (50-100 traces from LMSYS-Chat-1M/WildChat real user turns, or simulator output once available) is still needed for that half specifically.
 - **Candidates (structural):** Phoenix's agent-trajectory evaluators, DeepEval's agent metrics, a custom LLM-judge prompt (as a comparison baseline against the off-the-shelf options).
 - **Candidates (implicit criticism):** an off-the-shelf sentiment/frustration classifier, a custom LLM-judge prompt.
 - **Metrics:** precision, recall, F1 against the gold set for each candidate in each category; cost and latency per trace.
 - **Decision rule:** highest F1 at acceptable cost/latency, chosen independently per category (the winning structural detector need not come from the same toolkit as the winning criticism detector).
+
+## Test Datasets & Reference Implementations
+
+- **TRAIL** (Trace Reasoning and Agentic Issue Localization; Hugging Face `PatronusAI/TRAIL`, GitHub `patronus-ai/trail-benchmark`) — 148 real agent execution traces built from GAIA and SWE-Bench tasks, with 841 hand-annotated errors spanning reasoning errors (hallucinations), system execution errors (API issues), and planning/coordination errors, across single- and multi-agent systems. This is the primary gold-labeled dataset for the structural-failure half of the experiment above: normalize TRAIL's traces through a `TraceAdapter` (spec 02) and use its existing annotations directly rather than re-labeling. Note: published results report even strong models scoring as low as ~11% accuracy on TRAIL's localization task, so treat it as a genuinely hard benchmark, not a rubber stamp.
+- Patronus AI's own `trail-benchmark` GitHub repo is a reference implementation of a trace-failure-localization scorer, worth reading before writing this project's own judge prompts for the structural category.
+- No equivalent open, labeled dataset was found for "implicit user criticism/frustration" specifically. **LMSYS-Chat-1M** and **WildChat** both contain real user turns (including visible corrections and frustration) but without failure labels — the practical path is a small hand-labeled sample drawn from these corpora, not a from-scratch collection effort.
 
 ## Interface & Implementation Decisions
 
@@ -45,7 +51,7 @@ Most failures aren't reported; they're just abandoned or worked around by the us
 
 ## Testing Decisions
 
-- Test against the gold-labeled fixture set built during the experiment — this doubles as both the experiment's dataset and the regression test suite going forward (a new candidate or prompt change gets checked against the same ground truth).
+- Test the structural detector against TRAIL's labeled traces, and the criticism detector against the hand-labeled LMSYS-Chat-1M/WildChat sample — both double as the experiment's dataset and the regression test suite going forward (a new candidate or prompt change gets checked against the same ground truth).
 - Test the two detection paths independently with mocked inputs for the other, so a change to the sentiment classifier can't silently break structural-detection tests and vice versa.
 
 ## Out of Scope

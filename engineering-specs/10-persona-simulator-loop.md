@@ -34,6 +34,11 @@ Running a simulated user against a target agent turn-by-turn, at volume and conc
   - *Maintenance signal* — release cadence, license, community activity.
 - **Decision rule:** lowest integration effort with adequate concurrency support wins. τ-bench is the leading hypothesis on fit; if its task/API-tool domain assumptions prove too rigid to repurpose cheaply, fall back to the plain custom loop over the general orchestration frameworks — a custom loop this project fully controls is a smaller liability than bending a framework built for a different purpose (multi-agent system construction, not user simulation) to this task.
 
+## Test Datasets & Reference Implementations
+
+- **τ-bench / τ²-bench** itself ships complete retail and airline domain environments, task sets, and a working user-simulator-vs-agent loop — the single richest open reference implementation available for this spec, usable both as the leading candidate under evaluation and, if adopted, as an initial scenario library so v0 doesn't need to author scenarios from scratch.
+- **LMSYS-Chat-1M** / **WildChat** opening turns (the first user message of real conversations) are a ready source of realistic conversation-starter prompts to seed simulated scenarios beyond τ-bench's built-in task sets.
+
 ## Interface & Implementation Decisions
 
 - Interface: `simulate(persona_spec, agent_adapter, scenario) -> native_transcript`, matching the parent spec's `PersonaSimulator` module signature exactly.

@@ -35,6 +35,11 @@ Per-model pricing changes over time and varies by provider; hand-maintaining a p
   - *Integration effort* — how much glue code is needed to call it from our `Event.attributes` shape.
 - **Decision rule:** highest coverage + accuracy at acceptable integration effort. Given LiteLLM's stated 1,600+-model coverage and active maintenance (it's also a candidate transport layer in spec 09, so adopting its pricing DB avoids a second dependency for the same ecosystem), it's the leading hypothesis — but the experiment should confirm coverage against this project's actual model list rather than assume it.
 
+## Test Datasets & Reference Implementations
+
+- **LiteLLM's own `model_prices_and_context_window.json`** — the live pricing table backing its cost tracking — is itself an open, versioned reference dataset. Test coverage/accuracy directly against its current contents rather than a hand-copied excerpt that can silently drift out of sync with upstream updates.
+- Provider-published pricing pages (Anthropic, OpenAI, etc.) remain the ground-truth spot-check for the accuracy metric — no dataset substitutes for checking a sample of models against the actual source of truth.
+
 ## Interface & Implementation Decisions
 
 - Interface: `compute_cost(trace: NormalizedTrace) -> CostResult { amount | unknown, currency, breakdown_by }`.

@@ -35,6 +35,12 @@ Rather than hand-writing instrumentation for a target agent, two OSS auto-instru
   - *Maturity signal* — release cadence, stability badge, open issues touching breaking changes.
 - **Decision rule:** pick the source with highest field coverage per unit of mapping effort; break ties toward the more stable/mature convention, since this adapter will need to survive upstream schema churn (OTel GenAI is explicitly still shifting as of 2026).
 
+## Test Datasets & Reference Implementations
+
+- **OpenLLMetry** and **OpenInference** both ship example/quickstart repos with sample instrumented applications (LangChain, raw Anthropic/OpenAI SDK calls) — running these directly produces real native-format captures to build and test an adapter against, without needing a bespoke target agent built first.
+- **Arize Phoenix**'s own open-source test suite and example trace fixtures are a reference implementation of consuming OpenInference-format spans; the OpenInference-based adapter's output can be checked for parity against how Phoenix itself interprets the same spans.
+- **LMSYS-Chat-1M** / **WildChat** conversations, replayed through a thin OpenLLMetry- or OpenInference-instrumented wrapper, produce large volumes of realistic native-format exports at replay cost only — useful for adapter load and edge-case testing beyond a small hand-written fixture set.
+
 ## Interface & Implementation Decisions
 
 - Each adapter is a standalone module satisfying `normalize(raw_export) -> list[Event]` (spec 01); no shared logic between adapters beyond that interface.

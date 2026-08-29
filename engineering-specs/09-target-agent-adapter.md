@@ -25,6 +25,11 @@ For agents that aren't API-shaped (a CLI/harness-driven target, for example), no
 
 Not applicable — see Build vs Buy Decision. This spec is an architecture/build-vs-buy call with no genuine multi-candidate comparison to run. (Contrast with spec 02, where multiple instrumentation libraries are genuinely comparable and get benchmarked.)
 
+## Test Datasets & Reference Implementations
+
+- **τ-bench / τ²-bench**'s retail and airline domain environments (see spec 10) double as ready-made fake target agents for this spec's own tests, rather than hand-writing a scripted stub from nothing.
+- **LiteLLM**'s own open-source test suite is a reference implementation for mocking provider responses without live API calls, directly applicable to testing the LiteLLM-backed half of this adapter.
+
 ## Interface & Implementation Decisions
 
 - Interface: `agentAdapter.send(conversation_so_far) -> agent_response`, with the response captured in whatever native shape the target agent produces (normalized later via that target's own `TraceAdapter`, spec 02, not here).
